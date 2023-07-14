@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock Information</title>
+    <style>
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Ubuntu', sans-serif;
+            font-size: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+        }
+        #content {
+            flex-grow: 1;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: stretch;
+            justify-content: center;
+            gap: 0;
+            margin-top: auto;
+        }
+        .stock-block {
+            box-sizing: border-box;
+            width: calc(50%);
+            background-color: lightgray;
+            border: 1px solid black;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+        }
+        .stock-block h2 {
+            font-size: 50px;
+            margin-bottom: 10px;
+        }
+        .stock-block .stock-info {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+        }
+        .profit {
+            background-color: lightgreen;
+        }
+        .loss {
+            background-color: lightcoral;
+        }
+        .total {
+            text-align: center;
+            width: 100%;
+        }
+        p {
+            text-align: center;
+            font-size: 40px;
+            margin: 0;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+<body>
+    <div id="content"></div>
+    <script>
+        var prevData = null;
+
+        function formatNumber(number) {
+            return parseFloat(number).toFixed(2);
+        }
+
+        function fetchData() {
+            fetch('/data')
+                .then(response => response.json())
+                .then(data => {
+                    var content = document.getElementById('content');
+                    content.innerHTML = '';
+
+                    data.stock_info.forEach((info, index) => {
+                        var div = document.createElement('div');
+                        div.classList.add('stock-block');
+                        if (prevData) {
+                            var prevProfitLoss = prevData.stock_info[index].profit_loss;
+                            var currentProfitLoss = info.profit_loss;
+                            if (prevProfitLoss < currentProfitLoss) {
+                                div.classList.add('profit');
+                            } else if (prevProfitLoss > currentProfitLoss) {
+                                div.classList.add('loss');
+                            }
+                        }
+                        div.innerHTML = `
+                            <h2>${info.ticker}</h2>
+                            <div class="stock-info">
+                                <p>Purchase price: $${formatNumber(info.purchase_price)}</p>
+                                <p>Quantity: ${info.quantity}</p>
+                                <p>Current price: $${formatNumber(info.current_price)}</p>
+                                <p>${info.profit_loss >= 0 ? 'Profit' : 'Loss'}: $${formatNumber(Math.abs(info.profit_loss))}</p>
+                            </div>
+                        `;
+                        content.appendChild(div);
+                    });
+
+                    var totalDiv = document.createElement('div');
+                    totalDiv.classList.add('stock-block');
+                    totalDiv.classList.add('total');
+                    if (prevData) {
+                        var prevTotalProfitLoss = prevData.total_profit_loss;
+                        var currentTotalProfitLoss = data.total_profit_loss;
+                        if (prevTotalProfitLoss < currentTotalProfitLoss) {
+                            totalDiv.classList.add('profit');
+                        } else if (prevTotalProfitLoss > currentTotalProfitLoss) {
+                            totalDiv.classList.add('loss');
+                        }
+                    }
+                    totalDiv.innerHTML = `
+                        <h2>Total</h2>
+                        <p>${data.total_profit_loss >= 0 ? 'Total Profit' : 'Total Loss'}: $${formatNumber(Math.abs(data.total_profit_loss))}</p>
+                    `;
+                    content.appendChild(totalDiv);
+
+                    prevData = data;
+                });
+        }
+
+        fetchData();
+        setInterval(fetchData, 2000);
+    </script>
+</body>
+</html>
